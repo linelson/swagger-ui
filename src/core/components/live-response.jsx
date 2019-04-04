@@ -53,14 +53,14 @@ export default class LiveResponse extends React.Component {
 
     const curlRequest = showMutatedRequest ? specSelectors.mutatedRequestFor(path, method) : specSelectors.requestFor(path, method)
     const status = response.get("status")
-    const url = response.get("url")
+    const url = curlRequest.get("url")
     const headers = response.get("headers").toJS()
     const notDocumented = response.get("notDocumented")
     const isError = response.get("error")
     const body = response.get("text")
     const duration = response.get("duration")
     const headersKeys = Object.keys(headers)
-    const contentType = headers["content-type"]
+    const contentType = headers["content-type"] || headers["Content-Type"]
 
     const Curl = getComponent("curl")
     const ResponseBody = getComponent("responseBody")
@@ -80,7 +80,7 @@ export default class LiveResponse extends React.Component {
           </div>
         }
         <h4>Server response</h4>
-        <table className="responses-table">
+        <table className="responses-table live-responses-table">
           <thead>
           <tr className="responses-header">
             <td className="col col_header response-col_status">Code</td>

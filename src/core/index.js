@@ -8,7 +8,7 @@ import * as AllPlugins from "core/plugins/all"
 import { parseSearch } from "core/utils"
 
 if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") {
-  win.Perf = require("react-addons-perf")
+  win.Perf = require("react-dom/lib/ReactPerf")
 }
 
 // eslint-disable-next-line no-undef
@@ -27,7 +27,7 @@ module.exports = function SwaggerUI(opts) {
 
   const defaults = {
     // Some general settings, that we floated to the top
-    dom_id: null,
+    dom_id: null, // eslint-disable-line camelcase
     domNode: null,
     spec: {},
     url: "",
@@ -37,6 +37,7 @@ module.exports = function SwaggerUI(opts) {
     maxDisplayedTags: null,
     filter: null,
     validatorUrl: "https://online.swagger.io/validator",
+    oauth2RedirectUrl: `${window.location.protocol}//${window.location.host}/oauth2-redirect.html`,
     configs: {},
     custom: {},
     displayOperationId: false,
@@ -49,6 +50,18 @@ module.exports = function SwaggerUI(opts) {
     defaultModelExpandDepth: 1,
     defaultModelsExpandDepth: 1,
     showExtensions: false,
+    showCommonExtensions: false,
+    withCredentials: undefined,
+    supportedSubmitMethods: [
+      "get",
+      "put",
+      "post",
+      "delete",
+      "options",
+      "head",
+      "patch",
+      "trace"
+    ],
 
     // Initial set of plugins ( TODO rename this, or refactor - we don't need presets _and_ plugins. Its just there for performance.
     // Instead, we can compile the first plugin ( it can be a collection of plugins ), then batch the rest.
@@ -120,10 +133,6 @@ module.exports = function SwaggerUI(opts) {
   var system = store.getSystem()
 
   const downloadSpec = (fetchedConfig) => {
-    if(typeof constructorConfig !== "object") {
-      return system
-    }
-
     let localConfig = system.specSelectors.getLocalConfig ? system.specSelectors.getLocalConfig() : {}
     let mergedConfig = deepExtend({}, localConfig, constructorConfig, fetchedConfig || {}, queryConfig)
 
@@ -133,13 +142,14 @@ module.exports = function SwaggerUI(opts) {
     }
 
     store.setConfigs(mergedConfig)
+    system.configsActions.loaded()
 
     if (fetchedConfig !== null) {
       if (!queryConfig.url && typeof mergedConfig.spec === "object" && Object.keys(mergedConfig.spec).length) {
         system.specActions.updateUrl("")
         system.specActions.updateLoadingStatus("success")
         system.specActions.updateSpec(JSON.stringify(mergedConfig.spec))
-      } else if (system.specActions.download && mergedConfig.url) {
+      } else if (system.specActions.download && mergedConfig.url && !mergedConfig.urls) {
         system.specActions.updateUrl(mergedConfig.url)
         system.specActions.download(mergedConfig.url)
       }
@@ -160,10 +170,17 @@ module.exports = function SwaggerUI(opts) {
     return system
   }
 
-  let configUrl = queryConfig.config || constructorConfig.configUrl
+  const configUrl = queryConfig.config || constructorConfig.configUrl
 
-  if (!configUrl || !system.specActions.getConfigByUrl || system.specActions.getConfigByUrl && !system.specActions.getConfigByUrl(configUrl, downloadSpec)) {
+  if (!configUrl || !system.specActions || !system.specActions.getConfigByUrl || system.specActions.getConfigByUrl && !system.specActions.getConfigByUrl({
+    url: configUrl,
+    loadRemoteConfig: true,
+    requestInterceptor: constructorConfig.requestInterceptor,
+    responseInterceptor: constructorConfig.responseInterceptor,
+  }, downloadSpec)) {
     return downloadSpec()
+  } else {
+    system.specActions.getConfigByUrl(configUrl, downloadSpec)
   }
 
   return system

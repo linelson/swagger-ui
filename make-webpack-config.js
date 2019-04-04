@@ -1,10 +1,11 @@
 var path = require("path")
 
-var webpack = require('webpack')
-var ExtractTextPlugin = require('extract-text-webpack-plugin')
-const CopyWebpackPlugin = require('copy-webpack-plugin')
-var deepExtend = require('deep-extend')
-const {gitDescribeSync} = require('git-describe')
+var webpack = require("webpack")
+var ExtractTextPlugin = require("extract-text-webpack-plugin")
+const CopyWebpackPlugin = require("copy-webpack-plugin")
+const UglifyJsPlugin = require("uglifyjs-webpack-plugin")
+var deepExtend = require("deep-extend")
+const {gitDescribeSync} = require("git-describe")
 const os = require("os")
 
 var pkg = require("./package.json")
@@ -28,12 +29,15 @@ var commonRules = [
         retainLines: true
       }
     }],
-    include: [ path.join(__dirname, "src") ]
+    include: [
+      path.join(__dirname, "src"),
+      path.join(__dirname, "node_modules", "object-assign-deep"),
+    ]
   },
   { test: /\.(txt|yaml)(\?.*)?$/,
     loader: "raw-loader" },
   { test: /\.(png|jpg|jpeg|gif|svg)(\?.*)?$/,
-    loader: "url-loader?limit=10000" },
+    loader: "url-loader" },
   { test: /\.(woff|woff2)(\?.*)?$/,
     loader: "url-loader?limit=100000" },
   { test: /\.(ttf|eot)(\?.*)?$/,
@@ -48,6 +52,7 @@ module.exports = function(rules, options) {
     hot: false,
     separateStylesheets: true,
     minimize: false,
+    mangle: false,
     longTermCaching: false,
     sourcemaps: false,
   }, options._special)
@@ -61,10 +66,18 @@ module.exports = function(rules, options) {
     }))
   }
 
-  if( specialOptions.minimize ) {   // production mode
+  if( specialOptions.minimize ) { // production mode
 
     plugins.push(
-      new webpack.optimize.UglifyJsPlugin({
+      new UglifyJsPlugin({
+        uglifyOptions: {
+          mangle: specialOptions.mangle,
+          compress: specialOptions.mangle ? {
+            dead_code: true
+          } : false,
+          beautify: !specialOptions.mangle,
+        },
+        
         sourceMap: true,
       }),
       new webpack.LoaderOptionsPlugin({
@@ -76,8 +89,8 @@ module.exports = function(rules, options) {
 
     plugins.push( new webpack.NoEmitOnErrorsPlugin())
 
-  } else {    // development mode
-    plugins.push(new CopyWebpackPlugin([ { from: 'test/e2e/specs', to: 'test-specs' } ]))
+  } else { // development mode
+    plugins.push(new CopyWebpackPlugin([ { from: "test/e2e-selenium/specs", to: "test-specs" } ]))
   }
 
   plugins.push(
@@ -133,7 +146,7 @@ module.exports = function(rules, options) {
       ],
       extensions: [".web.js", ".js", ".jsx", ".json", ".less"],
       alias: {
-        base: "getbase/src/less/base",
+        "js-yaml": "@kyleshockey/js-yaml"
       }
     },
 

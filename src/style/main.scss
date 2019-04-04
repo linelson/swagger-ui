@@ -1,5 +1,6 @@
 .swagger-ui
 {
+    @import '~tachyons-sass/tachyons.scss';
     @import 'mixins';
     @import 'variables';
     @import 'colors';
@@ -17,4 +18,5 @@
     @import 'errors';
     @include text_body();
     @import 'split-pane-mode';
+    @import 'markdown';
 }

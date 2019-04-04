@@ -35,7 +35,11 @@ export default class Servers extends React.Component {
     if(this.props.currentServer !== nextProps.currentServer) {
       // Server has changed, we may need to set default values
       let currentServerDefinition = servers
-        .find(v => v.get("url") === nextProps.currentServer) || OrderedMap()
+        .find(v => v.get("url") === nextProps.currentServer)
+
+      if(!currentServerDefinition) {
+        return this.setServer(servers.first().get("url"))
+      }
 
       let currentServerVariableDefs = currentServerDefinition.get("variables") || OrderedMap()
 
@@ -90,6 +94,7 @@ export default class Servers extends React.Component {
       getEffectiveServerValue
     } = this.props
 
+
     let currentServerDefinition = servers.find(v => v.get("url") === currentServer) || OrderedMap()
 
     let currentServerVariableDefs = currentServerDefinition.get("variables") || OrderedMap()
@@ -106,6 +111,7 @@ export default class Servers extends React.Component {
                 value={ server.get("url") }
                 key={ server.get("url") }>
                 { server.get("url") }
+                { server.get("description") && ` - ${server.get("description")}` }
               </option>
             ).toArray()}
           </select>
